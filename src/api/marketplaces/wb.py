@@ -12,6 +12,8 @@ from api.marketplaces.base import MarketplaceBase
 WB_CARDS_UPLOAD_BATCH_SIZE = 100
 WB_CONTENT_RATE_LIMIT_DELAY_SECONDS = 0.7
 WB_MEDIA_MAX_FILES = 30
+WB_HTTP_RETRY_COUNT = 3
+WB_HTTP_RETRY_DELAY_SECONDS = 1.5
 
 
 class WildberriesMarketplace(MarketplaceBase):
@@ -204,28 +206,44 @@ class WildberriesMarketplace(MarketplaceBase):
             print("[wb] Пропуск: не задан WB_API_KEY")
             return None
         headers = {"Authorization": self.settings.wb_api_key}
-        with httpx.Client(
-            base_url=self.settings.wb_content_api_base_url,
-            timeout=self.settings.timeout,
-            headers=headers,
-        ) as client:
-            response = client.get(path, params=params)
-            print(f"[wb] GET {path} status: {response.status_code}")
-            print(f"[wb] GET {path} response: {response.text[:2000]}")
-            return response
+        for attempt in range(1, WB_HTTP_RETRY_COUNT + 1):
+            try:
+                with httpx.Client(
+                    base_url=self.settings.wb_content_api_base_url,
+                    timeout=self.settings.timeout,
+                    headers=headers,
+                ) as client:
+                    response = client.get(path, params=params)
+                    print(f"[wb] GET {path} status: {response.status_code}")
+                    print(f"[wb] GET {path} response: {response.text[:2000]}")
+                    return response
+            except httpx.HTTPError as exc:
+                print(f"[wb] GET {path} attempt {attempt}/{WB_HTTP_RETRY_COUNT} failed: {exc}")
+                if attempt == WB_HTTP_RETRY_COUNT:
+                    return None
+                time.sleep(WB_HTTP_RETRY_DELAY_SECONDS)
+        return None
 
     def _content_post(self, path: str, json: dict | list) -> httpx.Response | None:
         if not self.settings.wb_api_key:
             print("[wb] Пропуск: не задан WB_API_KEY")
             return None
         headers = {"Authorization": self.settings.wb_api_key, "Content-Type": "application/json"}
-        with httpx.Client(
-            base_url=self.settings.wb_content_api_base_url,
-            timeout=self.settings.timeout,
-            headers=headers,
-        ) as client:
-            response = client.post(path, json=json)
-            return response
+        for attempt in range(1, WB_HTTP_RETRY_COUNT + 1):
+            try:
+                with httpx.Client(
+                    base_url=self.settings.wb_content_api_base_url,
+                    timeout=self.settings.timeout,
+                    headers=headers,
+                ) as client:
+                    response = client.post(path, json=json)
+                    return response
+            except httpx.HTTPError as exc:
+                print(f"[wb] POST {path} attempt {attempt}/{WB_HTTP_RETRY_COUNT} failed: {exc}")
+                if attempt == WB_HTTP_RETRY_COUNT:
+                    return None
+                time.sleep(WB_HTTP_RETRY_DELAY_SECONDS)
+        return None
 
     def _fetch_cards_index(self, vendor_codes: set[str]) -> dict[str, int]:
         found: dict[str, int] = {}
