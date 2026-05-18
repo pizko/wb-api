@@ -71,11 +71,37 @@ def test_parser_has_wb_products_draft_command() -> None:
     assert str(args.output) == "data/wb/products_draft.xlsx"
 
 
+def test_parser_has_wb_products_draft_from_template_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        [
+            "build-wb-products-draft-from-template",
+            "--input",
+            "data/input.xlsx",
+            "--output",
+            "data/wb/template_products_draft.xlsx",
+        ]
+    )
+    assert args.command == "build-wb-products-draft-from-template"
+    assert str(args.input) == "data/input.xlsx"
+    assert str(args.output) == "data/wb/template_products_draft.xlsx"
+
+
 def test_parser_has_wb_upload_media_links_command() -> None:
     parser = build_parser()
     args = parser.parse_args(["wb-upload-media-links", "--input", "data/wb/products_draft.xlsx"])
     assert args.command == "wb-upload-media-links"
     assert str(args.input) == "data/wb/products_draft.xlsx"
+
+
+def test_parser_has_wb_import_products_batch_delay_command() -> None:
+    parser = build_parser()
+    args = parser.parse_args(
+        ["wb-import-products", "--input", "data/wb/products_draft.xlsx", "--batch-delay-seconds", "10"]
+    )
+    assert args.command == "wb-import-products"
+    assert str(args.input) == "data/wb/products_draft.xlsx"
+    assert args.batch_delay_seconds == 10.0
 
 
 def test_parser_has_wb_mapping_draft_command() -> None:

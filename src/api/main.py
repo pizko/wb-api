@@ -127,11 +127,19 @@ def build_parser() -> argparse.ArgumentParser:
     wb_products_draft.add_argument("--input", type=Path, default=Path("data/marketplace_feed.xlsx"))
     wb_products_draft.add_argument("--output", type=Path, default=Path("data/wb/products_draft.xlsx"))
 
+    wb_template_products_draft = subparsers.add_parser(
+        "build-wb-products-draft-from-template",
+        help="Build Wildberries products draft from already filled WB Excel template",
+    )
+    wb_template_products_draft.add_argument("--input", type=Path, required=True)
+    wb_template_products_draft.add_argument("--output", type=Path, default=Path("data/wb/template_products_draft.xlsx"))
+
     wb_import_products = subparsers.add_parser(
         "wb-import-products",
         help="Import Wildberries product cards from prepared draft file",
     )
     wb_import_products.add_argument("--input", type=Path, default=Path("data/wb/products_draft.xlsx"))
+    wb_import_products.add_argument("--batch-delay-seconds", type=float, default=10.0)
 
     wb_upload_media_links = subparsers.add_parser(
         "wb-upload-media-links",
@@ -271,8 +279,12 @@ def main() -> None:
         print(f"Строк в draft: {len(rows)}")
         return
 
+    if args.command == "build-wb-products-draft-from-template":
+        WildberriesMarketplace(settings).build_products_draft_from_template(args.input, args.output)
+        return
+
     if args.command == "wb-import-products":
-        WildberriesMarketplace(settings).import_products(args.input)
+        WildberriesMarketplace(settings).import_products(args.input, args.batch_delay_seconds)
         return
 
     if args.command == "wb-upload-media-links":

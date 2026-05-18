@@ -262,6 +262,35 @@ def export_ozon_products_draft_xlsx(path: Path, rows: list[dict[str, str]]) -> P
 
 
 def export_wb_products_draft_xlsx(path: Path, rows: list[dict[str, str]]) -> Path:
+    normalized_rows: list[dict[str, str]] = []
+    for row in rows:
+        image_url = (row.get("image_url") or "").strip()
+        normalized_rows.append(
+            {
+                "vendorCode": row.get("offer_id", ""),
+                "title": row.get("name", ""),
+                "description": row.get("description", ""),
+                "brand": row.get("producer", ""),
+                "price_rrc": row.get("rrc", ""),
+                "length": "",
+                "width": "",
+                "height": "",
+                "weightBrutto": "",
+                "barcode": row.get("barcode", ""),
+                "images_json": json.dumps([image_url], ensure_ascii=False) if image_url else "[]",
+                "supplier_group_name": row.get("group_name", ""),
+                "supplier_group_tree": row.get("group_tree_candidates", ""),
+                "wb_parent_id": "",
+                "wb_subject_id": "",
+                "wb_subject_name": "",
+                "characteristics_json": "[]",
+                "comment": "Заполни wb_parent_id, wb_subject_id, характеристики и габариты перед импортом",
+            }
+        )
+    return save_wb_products_draft_rows_xlsx(path, normalized_rows)
+
+
+def save_wb_products_draft_rows_xlsx(path: Path, rows: list[dict[str, str]]) -> Path:
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "wb_products_draft"
@@ -288,27 +317,26 @@ def export_wb_products_draft_xlsx(path: Path, rows: list[dict[str, str]]) -> Pat
         ]
     )
     for row in rows:
-        image_url = (row.get("image_url") or "").strip()
         sheet.append(
             [
-                row.get("offer_id", ""),
-                row.get("name", ""),
+                row.get("vendorCode", ""),
+                row.get("title", ""),
                 row.get("description", ""),
-                row.get("producer", ""),
-                row.get("rrc", ""),
-                "",
-                "",
-                "",
-                "",
+                row.get("brand", ""),
+                row.get("price_rrc", ""),
+                row.get("length", ""),
+                row.get("width", ""),
+                row.get("height", ""),
+                row.get("weightBrutto", ""),
                 row.get("barcode", ""),
-                json.dumps([image_url], ensure_ascii=False) if image_url else "[]",
-                row.get("group_name", ""),
-                row.get("group_tree_candidates", ""),
-                "",
-                "",
-                "",
-                "[]",
-                "Заполни wb_parent_id, wb_subject_id, характеристики и габариты перед импортом",
+                row.get("images_json", "[]"),
+                row.get("supplier_group_name", ""),
+                row.get("supplier_group_tree", ""),
+                row.get("wb_parent_id", ""),
+                row.get("wb_subject_id", ""),
+                row.get("wb_subject_name", ""),
+                row.get("characteristics_json", "[]"),
+                row.get("comment", ""),
             ]
         )
     _autosize(sheet)
@@ -560,6 +588,40 @@ def load_wb_products_draft_rows(path: Path) -> list[dict[str, str]]:
         for index, header in enumerate(headers):
             value = row[index] if index < len(row) else None
             payload[header] = "" if value is None else str(value)
+        result.append(payload)
+    return result
+
+
+def load_wb_template_rows(path: Path, sheet_name: str = "Товары") -> list[dict[str, str]]:
+    workbook = load_workbook(path, data_only=True)
+    if sheet_name not in workbook.sheetnames:
+        raise RuntimeError(f"В файле нет листа {sheet_name}")
+    sheet = workbook[sheet_name]
+
+    headers_row = 3
+    data_start_row = 5
+    headers: list[str] = []
+    for cell in sheet[headers_row]:
+        headers.append("" if cell.value is None else str(cell.value).strip())
+
+    result: list[dict[str, str]] = []
+    for row in sheet.iter_rows(min_row=data_start_row, values_only=True):
+        if not row:
+            continue
+        payload: dict[str, str] = {}
+        non_empty = False
+        for index, header in enumerate(headers):
+            if not header:
+                continue
+            value = row[index] if index < len(row) else None
+            text = "" if value is None else str(value).strip()
+            payload[header] = text
+            if text:
+                non_empty = True
+        if not non_empty:
+            continue
+        if not payload.get("Артикул продавца") or not payload.get("Наименование"):
+            continue
         result.append(payload)
     return result
 
