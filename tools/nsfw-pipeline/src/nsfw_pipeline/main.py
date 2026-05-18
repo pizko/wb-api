@@ -89,24 +89,39 @@ def run_censor_folder(
         return
 
     report: list[dict] = []
+    skipped: list[dict[str, str]] = []
     for image_path in images:
         relative = image_path.relative_to(input_dir)
         output_path = output_dir / relative
-        detections = detector.detect(image_path)
-        payload = censor_image(
-            image_path,
-            output_path,
-            detections,
-            effect=effect,
-            blur_kernel=blur_kernel,
-            pixel_size=pixel_size,
-            padding_ratio=padding_ratio,
-        )
+        try:
+            detections = detector.detect(image_path)
+            payload = censor_image(
+                image_path,
+                output_path,
+                detections,
+                effect=effect,
+                blur_kernel=blur_kernel,
+                pixel_size=pixel_size,
+                padding_ratio=padding_ratio,
+            )
+        except Exception as exc:
+            skipped.append({"file": str(relative), "error": str(exc)})
+            print(f"Пропущено: {relative} | ошибка: {exc}")
+            continue
+
         report.append(payload)
         print(f"Обработано: {relative} | зон: {len(detections)}")
 
-    report_path = save_report(output_dir / "detections_report.json", report)
+    report_path = save_report(
+        output_dir / "detections_report.json",
+        {
+            "processed": report,
+            "skipped": skipped,
+        },
+    )
     print(f"Готово. Изображений: {len(report)}")
+    if skipped:
+        print(f"Пропущено файлов: {len(skipped)}")
     print(f"Отчёт: {report_path.resolve()}")
 
 
