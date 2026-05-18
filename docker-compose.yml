@@ -1,0 +1,9 @@
+services:
+  api-sync:
+    build: .
+    container_name: api-sync
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data

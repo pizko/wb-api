@@ -1,0 +1,108 @@
+Metadata-Version: 2.4
+Name: api
+Version: 0.1.0
+Summary: Astkol supplier API client for catalog, stock, groups and marketplace feeds
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: httpx>=0.27.2
+Requires-Dist: openpyxl>=3.1.5
+Provides-Extra: dev
+Requires-Dist: pytest>=8.3.3; extra == "dev"
+Requires-Dist: ruff>=0.6.9; extra == "dev"
+
+# IPI
+
+Проект для работы с API поставщика Асткол-Альфа.
+
+Сейчас умеет:
+
+- забирать каталог товаров с остатками
+- забирать группы товаров
+- забирать привязки товаров к группам
+- забирать новинки за 30 дней
+- собирать единый Excel для дальнейшего маппинга в Ozon, Яндекс и Wildberries
+- запускаться в отдельном контейнере на VPS по расписанию
+- крутить бесконечный sync-loop без участия руками
+
+Структура:
+
+- `src/api` — код проекта
+- `tests` — тесты
+- `data` — входные и выходные файлы
+
+Быстрый старт:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -U pip setuptools wheel
+python3 -m pip install -e ".[dev]"
+```
+
+Переменные окружения:
+
+```bash
+export ASTKOL_USER="логин"
+export ASTKOL_PASSWORD="пароль"
+```
+
+Если есть только md5-хэш пароля:
+
+```bash
+export ASTKOL_USER="логин"
+export ASTKOL_PASSWORD_MD5="md5-хэш"
+```
+
+Основные команды:
+
+```bash
+python3 -m api.main fetch-catalog --output data/catalog.xlsx
+python3 -m api.main fetch-groups --output data/groups.xlsx
+python3 -m api.main fetch-new --output data/new_items.xlsx
+python3 -m api.main build-marketplace-feed --output data/marketplace_feed.xlsx
+python3 -m api.main sync-once --output-dir data
+python3 -m api.main sync-loop --output-dir data
+python3 -m api.main ozon-sync --input data/marketplace_feed.xlsx
+```
+
+## Контейнер для VPS
+
+Скопируй `.env.example` в `.env`, заполни доступы и запусти:
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+Контейнер:
+
+- сам забирает каталог поставщика
+- пересобирает `catalog.xlsx`, `groups.xlsx`, `marketplace_feed.xlsx`
+- затем вызывает адаптеры маркетплейсов
+- повторяет это с интервалом `SYNC_INTERVAL_SECONDS`
+
+Что уже есть по Ozon:
+
+- сборка `prices_payload.json`
+- сборка `stocks_payload.json`
+- dry-run режим по умолчанию
+- попытка реальной отправки при `OZON_DRY_RUN=0`
+
+Для реальной отправки нужно заполнить:
+
+```bash
+OZON_CLIENT_ID=
+OZON_API_KEY=
+OZON_API_BASE_URL=https://api-seller.ozon.ru
+OZON_WAREHOUSE_ID=
+OZON_CURRENCY_CODE=RUB
+OZON_DRY_RUN=0
+```
+
+По Wildberries и Яндексу пока заведены безопасные заглушки. Следующий шаг - дописать их по аналогии после доводки Ozon.
+
+Тест:
+
+```bash
+pytest
+```
