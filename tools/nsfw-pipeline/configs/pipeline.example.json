@@ -1,0 +1,24 @@
+{
+  "detector": "nudenet",
+  "effect": "blur",
+  "blur_kernel": 61,
+  "pixel_size": 18,
+  "padding_ratio": 0.08,
+  "labels": [
+    "FEMALE_BREAST_EXPOSED",
+    "FEMALE_GENITALIA_EXPOSED",
+    "MALE_GENITALIA_EXPOSED",
+    "ANUS_EXPOSED",
+    "BUTTOCKS_EXPOSED"
+  ],
+  "render": {
+    "format": "webp",
+    "max_width": 1200,
+    "max_height": 1200,
+    "white_background": true,
+    "watermark_text": "demo-shop.ru",
+    "watermark_font_size": 28,
+    "jpeg_quality": 92,
+    "webp_quality": 92
+  }
+}

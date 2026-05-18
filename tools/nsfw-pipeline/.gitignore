@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+.pytest_cache/
+data/censored/*
+data/final/*
+*.pyc
+*.pyo
+*.pyd
+.DS_Store

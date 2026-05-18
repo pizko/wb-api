@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nsfw-pipeline"
+version = "0.1.0"
+description = "Local pipeline for NSFW-zone censoring and store image preparation"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "opencv-python-headless>=4.10.0.84",
+  "Pillow>=10.4.0",
+  "nudenet>=3.4.2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.2",
+]
+
+[project.scripts]
+nsfw-pipeline = "nsfw_pipeline.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
