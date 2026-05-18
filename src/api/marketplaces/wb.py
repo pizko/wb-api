@@ -229,6 +229,38 @@ class WildberriesMarketplace(MarketplaceBase):
 
     def _fetch_cards_index(self, vendor_codes: set[str]) -> dict[str, int]:
         found: dict[str, int] = {}
+        for vendor_code in sorted(vendor_codes):
+            nm_id = self._fetch_nm_id_by_vendor_code(vendor_code)
+            if nm_id:
+                found[vendor_code] = nm_id
+            time.sleep(WB_CONTENT_RATE_LIMIT_DELAY_SECONDS)
+        return found
+
+    def _fetch_nm_id_by_vendor_code(self, vendor_code: str) -> int:
+        payload = {
+            "settings": {
+                "cursor": {"limit": 100},
+                "filter": {
+                    "withPhoto": -1,
+                    "textSearch": vendor_code,
+                },
+            }
+        }
+        response = self._content_post("/content/v2/get/cards/list", json=payload)
+        if response is None:
+            return 0
+        print(f"[wb] Cards lookup {vendor_code} status: {response.status_code}")
+        print(f"[wb] Cards lookup {vendor_code} response: {response.text[:2000]}")
+        data = _safe_json(response)
+        cards = data.get("cards") or []
+        for card in cards:
+            candidate_vendor_code = str(card.get("vendorCode") or "").strip()
+            if candidate_vendor_code == vendor_code:
+                return _int_or_zero(card.get("nmID", ""))
+        return 0
+
+    def _fetch_cards_index_via_pagination(self, vendor_codes: set[str]) -> dict[str, int]:
+        found: dict[str, int] = {}
         cursor: dict[str, str | int] = {"limit": 100}
 
         while True:
